@@ -78,21 +78,14 @@ public class Trie
     {
         if(fetchMax <= 0) throw new Exception("Fetch max must be positive integer.");
 
-        wordStart = NormaliseWord(wordStart);
-
         var r = new HashSet<string>();
 
-        var selectedNode = TopNode;
-        foreach (var c in wordStart)
-        {
-            // Nothing starting with this word
-            if (!selectedNode.Nodes.ContainsKey(c)) return r;
-            selectedNode = selectedNode.Nodes[c];
-        }
+        var foundNode = GetNode(wordStart);
+        if (foundNode == null) return r;
 
         // Get terminal nodes for this node
         {
-            var terminalNodes = selectedNode.TerminalNodes().Take(fetchMax);
+            var terminalNodes = foundNode.TerminalNodes().Take(fetchMax);
             foreach (var node in terminalNodes)
             {
                 r.Add(node.Word);
@@ -102,11 +95,11 @@ public class Trie
         // Go up a node if not found enough suggestions
         if (r.Count < fetchMax)
         {
-            var parentNode = selectedNode.ParentNode;
+            var parentNode = foundNode.ParentNode;
             if (parentNode != null)
             {
                 var remainingToFetch = fetchMax - r.Count;
-                var terminalNodes = parentNode.TerminalNodes(selectedNode.C).Take(remainingToFetch);
+                var terminalNodes = parentNode.TerminalNodes(foundNode.C).Take(remainingToFetch);
                 foreach (var node in terminalNodes)
                 {
                     r.Add(node.Word);
@@ -135,20 +128,27 @@ public class Trie
     /// </summary>
     public void RemoveWord(string word)
     {
-        word = NormaliseWord(word);
-        var selectedNode = TopNode;
-
-        foreach (var c in word)
-        {
-            if (!selectedNode.Nodes.ContainsKey(c)) return;
-            selectedNode = selectedNode.Nodes[c];
-        }
+        var node = GetNode(word);
 
         // Word doesn't exist
-        if (!selectedNode.Terminal) return;
-
-        selectedNode.Terminal = false;
+        if (!node.Terminal) return;
+        node.Terminal = false;
         TerminalNodes--;
+    }
+
+    /// <summary>
+    /// Get the node that starts with forWord
+    /// </summary>
+    private Node GetNode(string forWord)
+    {
+        forWord = NormaliseWord(forWord);
+        var selectedNode = TopNode;
+        foreach (var c in forWord)
+        {
+            if (!selectedNode.Nodes.ContainsKey(c)) return null;
+            selectedNode = selectedNode.Nodes[c];
+        }
+        return selectedNode;
     }
 
     /// <summary>
