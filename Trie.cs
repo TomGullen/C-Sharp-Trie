@@ -62,6 +62,16 @@ public class Trie
     private bool CaseSensitive { get; set; }
 
     /// <summary>
+    /// Total nodes in this trie
+    /// </summary>
+    public int TotalNodes { get; private set; }
+
+    /// <summary>
+    /// Total terminal nodes in this trie
+    /// </summary>
+    public int TerminalNodes { get; private set; }
+
+    /// <summary>
     /// Get list of all words in trie that start with
     /// </summary>
     public HashSet<string> GetAutocompleteSuggestions(string wordStart, int fetchMax = 10)
@@ -120,6 +130,28 @@ public class Trie
     }
 
     /// <summary>
+    /// Remove a word from the trie
+    /// Note: Only removes terminal flag (doesn't physically remove nodes)
+    /// </summary>
+    public void RemoveWord(string word)
+    {
+        word = NormaliseWord(word);
+        var selectedNode = TopNode;
+
+        foreach (var c in word)
+        {
+            if (!selectedNode.Nodes.ContainsKey(c)) return;
+            selectedNode = selectedNode.Nodes[c];
+        }
+
+        // Word doesn't exist
+        if (!selectedNode.Terminal) return;
+
+        selectedNode.Terminal = false;
+        TerminalNodes--;
+    }
+
+    /// <summary>
     /// Add a single word to the trie
     /// </summary>
     public void AddWord(string word)
@@ -133,10 +165,16 @@ public class Trie
             if (!selectedNode.Nodes.ContainsKey(c))
             {
                 selectedNode.Nodes.Add(c, new Node(selectedNode, c));
+                TotalNodes++;
             }
             selectedNode = selectedNode.Nodes[c];
         }
+
+        // Already exists
+        if (selectedNode.Terminal) return;
+
         selectedNode.Terminal = true;
+        TerminalNodes++;
     }
 
     /// <summary>
@@ -148,7 +186,7 @@ public class Trie
         word = word.Trim();
         if (!CaseSensitive)
         {
-            word = word.Trim();
+            word = word.ToLower();
         }
         return word;
     }
